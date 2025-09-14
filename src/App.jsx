@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import supabase from "./supabaseclient";
@@ -14,11 +13,11 @@ import Multiverse from "./pages/Multiverse";
 import CreatePersona from "./pages/CreatePersona";
 import Settings from "./pages/Setting"; // Correct spelling
 import ChatRoom from "./pages/ChatRoom"; // ✅ New import
-import FuturisticDashboard from "./pages/futuristicdashboard"; 
+
 import UniversePage from "./pages/UniversePage";
 import Narrative from "./pages/Narrative";
-
-
+import SafeZone from "./pages/SafeZone";
+import Enhancement from "./pages/Enhancement"; // ✅ Your new Enhancement page
 
 function App() {
   const [session, setSession] = useState(null);
@@ -65,7 +64,7 @@ function App() {
           <Route path="settings" element={<Settings />} />
         </Route>
 
-      
+        {/* Individual Protected Routes (Outside Dashboard Layout) */}
         <Route
           path="/chat/:id"
           element={
@@ -74,23 +73,36 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* ✅ FIXED: Enhancement route now points to your Enhancement component */}
         <Route
-  path="/futuristic"
-  element={
-    <ProtectedRoute session={session}>
-      <FuturisticDashboard />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/narrative"
-  element={
-    <ProtectedRoute session={session}>
-      <Narrative />
-    </ProtectedRoute>
-  }
-/>
-<Route path="/universe/:name" element={<UniversePage />} />
+          path="/enhancement"
+          element={
+            <ProtectedRoute session={session}>
+              <Enhancement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/narrative"
+          element={
+            <ProtectedRoute session={session}>
+              <Narrative />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/safezone"
+          element={
+            <ProtectedRoute session={session}>
+              <SafeZone />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="/universe/:name" element={<UniversePage />} />
 
         {/* Catch-all redirect */}
         <Route path="*" element={<Navigate to="/auth" />} />

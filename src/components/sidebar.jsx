@@ -1,7 +1,7 @@
 // src/components/Sidebar.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { FaUserAstronaut, FaRocket, FaCogs, FaHome, FaBook, FaShieldAlt, FaChartLine } from "react-icons/fa";
+import { FaUserAstronaut, FaRocket, FaCogs, FaHome, FaBook, FaShieldAlt, FaChartLine, FaBrain } from "react-icons/fa";
 import neonHero from "../assets/logo.png";
 
 // ==================== GLITCH TEXT COMPONENT ====================
@@ -298,11 +298,10 @@ const Sidebar = () => {
     { to: "/dashboard", icon: <FaHome />, text: "Neural Hub", badge: null },
     { to: "/create-persona", icon: <FaUserAstronaut />, text: "Forge Identity", badge: "NEW" },
     { to: "/multiverse", icon: <FaRocket />, text: "Reality Shift", badge: "6" },
-    { to: "/Narrative", icon: <FaBook />, text: "Narrative Mode", badge: null },
-    { to: "/safe-space", icon: <FaShieldAlt />, text: "Safe Zone", badge: null },
-    { to: "/productivity", icon: <FaChartLine />, text: "Enhancement", badge: null },
+    { to: "/narrative", icon: <FaBook />, text: "Narrative Mode", badge: null },
+    { to: "/safezone", icon: <FaShieldAlt />, text: "Safe Zone", badge: null },
+    { to: "/enhancement", icon: <FaBrain />, text: "Enhancement Lab", badge: "BETA" },
     { to: "/settings", icon: <FaCogs />, text: "System Config", badge: null },
-    {}
   ];
 
   return (

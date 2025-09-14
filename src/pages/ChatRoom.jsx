@@ -1,7 +1,8 @@
-// src/pages/ChatRoom.jsx
-import React, { useEffect, useState, useRef, useCallback } from "react";
+// src/pages/ChatRoom.jsx - FULL-SCREEN IMMERSIVE DESIGN
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import supabase from "../supabaseclient";
+import { getAIResponse } from "../services/aiService";
 
 // ==================== GLITCH TEXT COMPONENT ====================
 const GlitchText = ({ children, className = "", intensity = 1, color = "pink" }) => {
@@ -13,7 +14,7 @@ const GlitchText = ({ children, className = "", intensity = 1, color = "pink" })
       setTimeout(() => setIsGlitching(false), 150);
     };
 
-    const interval = setInterval(startGlitch, 3000 + Math.random() * 2000);
+    const interval = setInterval(startGlitch, 4000 + Math.random() * 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -45,30 +46,6 @@ const GlitchText = ({ children, className = "", intensity = 1, color = "pink" })
       >
         {children}
       </span>
-      {isGlitching && (
-        <>
-          <span 
-            className="absolute inset-0 opacity-70"
-            style={{
-              color: colors.primary,
-              transform: `translateX(${Math.random() * 6 - 3}px)`,
-              clipPath: 'inset(0 0 50% 0)'
-            }}
-          >
-            {children}
-          </span>
-          <span 
-            className="absolute inset-0 opacity-70"
-            style={{
-              color: colors.secondary,
-              transform: `translateX(${Math.random() * 6 - 3}px)`,
-              clipPath: 'inset(50% 0 0 0)'
-            }}
-          >
-            {children}
-          </span>
-        </>
-      )}
     </div>
   );
 };
@@ -92,68 +69,39 @@ const ParticleSystem = ({ theme, count = 25 }) => {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
 
-    // Initialize particles based on theme
+    // Initialize particles
     particlesRef.current = Array.from({ length: count }, (_, i) => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * theme.particleSpeed,
-      vy: (Math.random() - 0.5) * theme.particleSpeed,
-      size: Math.random() * theme.particleSize + 1,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      size: Math.random() * 3 + 1,
       opacity: Math.random() * 0.6 + 0.2,
       color: theme.particleColors[Math.floor(Math.random() * theme.particleColors.length)],
       pulse: Math.random() * Math.PI * 2,
       pulseSpeed: Math.random() * 0.02 + 0.01,
-      shape: theme.particleShape,
     }));
 
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       particlesRef.current.forEach((particle) => {
-        // Update position
         particle.x += particle.vx;
         particle.y += particle.vy;
         particle.pulse += particle.pulseSpeed;
         
-        // Wrap around edges
         if (particle.x < 0) particle.x = canvas.width;
         if (particle.x > canvas.width) particle.x = 0;
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
         
-        // Draw particle
         const currentSize = particle.size * (0.8 + Math.sin(particle.pulse) * 0.4);
         const currentOpacity = particle.opacity * (0.7 + Math.sin(particle.pulse) * 0.3);
         
-        if (particle.shape === 'circle') {
-          // Circle particles
-          ctx.beginPath();
-          ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
-          ctx.fillStyle = `${particle.color}${Math.floor(currentOpacity * 255).toString(16).padStart(2, '0')}`;
-          ctx.fill();
-        } else if (particle.shape === 'diamond') {
-          // Diamond particles
-          ctx.save();
-          ctx.translate(particle.x, particle.y);
-          ctx.rotate(particle.pulse);
-          ctx.beginPath();
-          ctx.moveTo(0, -currentSize);
-          ctx.lineTo(currentSize, 0);
-          ctx.lineTo(0, currentSize);
-          ctx.lineTo(-currentSize, 0);
-          ctx.closePath();
-          ctx.fillStyle = `${particle.color}${Math.floor(currentOpacity * 255).toString(16).padStart(2, '0')}`;
-          ctx.fill();
-          ctx.restore();
-        } else if (particle.shape === 'square') {
-          // Square particles
-          ctx.save();
-          ctx.translate(particle.x, particle.y);
-          ctx.rotate(particle.pulse);
-          ctx.fillStyle = `${particle.color}${Math.floor(currentOpacity * 255).toString(16).padStart(2, '0')}`;
-          ctx.fillRect(-currentSize, -currentSize, currentSize * 2, currentSize * 2);
-          ctx.restore();
-        }
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, currentSize, 0, Math.PI * 2);
+        ctx.fillStyle = `${particle.color}${Math.floor(currentOpacity * 255).toString(16).padStart(2, '0')}`;
+        ctx.fill();
       });
       
       frameRef.current = requestAnimationFrame(animate);
@@ -171,7 +119,7 @@ const ParticleSystem = ({ theme, count = 25 }) => {
     <canvas 
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-0"
-      style={{ mixBlendMode: theme.particleBlendMode || 'screen' }}
+      style={{ mixBlendMode: 'screen' }}
     />
   );
 };
@@ -179,266 +127,200 @@ const ParticleSystem = ({ theme, count = 25 }) => {
 // ==================== TYPING INDICATOR ====================
 const TypingIndicator = ({ theme }) => {
   return (
-    <div className={`flex items-center space-x-3 p-4 rounded-2xl max-w-xs ${theme.aiBubble} animate-pulse`}>
-      <div className="flex space-x-1">
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="w-2 h-2 rounded-full animate-bounce"
-            style={{
-              backgroundColor: theme.typingColor,
-              animationDelay: `${i * 0.2}s`,
-              boxShadow: `0 0 8px ${theme.typingColor}80`
-            }}
-          />
-        ))}
+    <div className="flex items-start space-x-4 mb-8 animate-pulse">
+      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 flex items-center justify-center">
+        <span className="text-white font-bold text-sm">🤖</span>
       </div>
-      <span className="text-sm font-medium" style={{ color: theme.typingColor }}>
-        {theme.typingText}
-      </span>
+      <div className="flex-1 max-w-4xl">
+        <div className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 backdrop-blur-sm rounded-3xl p-6 border border-purple-500/20">
+          <div className="flex items-center space-x-2">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="w-3 h-3 rounded-full animate-bounce"
+                style={{
+                  backgroundColor: theme.typingColor,
+                  animationDelay: `${i * 0.2}s`,
+                  boxShadow: `0 0 10px ${theme.typingColor}80`
+                }}
+              />
+            ))}
+            <span className="text-white/70 text-sm ml-4">
+              {theme.typingText || 'Thinking...'}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-// ==================== MESSAGE BUBBLE ====================
-const MessageBubble = ({ message, theme, isUser }) => {
+// ==================== FULL-SCREEN MESSAGE BUBBLE ====================
+const FullScreenMessage = ({ message, theme, isUser, character }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
+  const messageLength = message.content.length;
+  const isLongMessage = messageLength > 200;
+
   return (
     <div 
       className={`
-        max-w-md px-6 py-4 rounded-2xl break-words transition-all duration-500 transform
+        flex items-start space-x-4 mb-8 transition-all duration-500 transform
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
-        ${isUser 
-          ? `${theme.userBubble} self-end ml-auto` 
-          : `${theme.aiBubble} self-start mr-auto`
-        }
+        ${isUser ? 'flex-row-reverse space-x-reverse' : ''}
       `}
-      style={{
-        boxShadow: isUser ? theme.userShadow : theme.aiShadow,
-        border: `1px solid ${isUser ? theme.userBorder : theme.aiBorder}`,
-      }}
     >
-      <div className="text-white font-medium leading-relaxed">
-        {message.content}
+      {/* Avatar */}
+      <div className={`
+        w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0
+        ${isUser 
+          ? 'bg-gradient-to-r from-pink-600 to-purple-600' 
+          : 'bg-gradient-to-r from-purple-600 to-indigo-600'
+        }
+      `}>
+        <span className="text-white font-bold text-sm">
+          {isUser ? '👤' : (character?.avatar || '🤖')}
+        </span>
       </div>
-      
-      {/* Message effects based on theme */}
-      {theme.messageEffects && (
-        <div className="absolute inset-0 rounded-2xl pointer-events-none">
-          {theme.messageEffects === 'scan' && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-scan" />
+
+      {/* Message Content */}
+      <div className="flex-1 max-w-none">
+        <div className={`
+          rounded-3xl p-6 backdrop-blur-sm border transition-all duration-300
+          ${isUser 
+            ? 'bg-gradient-to-br from-pink-600/20 to-purple-600/20 border-pink-500/20' 
+            : 'bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border-purple-500/20'
+          }
+          hover:border-opacity-40 hover:backdrop-blur-md
+        `}
+          style={{
+            boxShadow: isUser 
+              ? '0 8px 32px rgba(236, 72, 153, 0.1)' 
+              : '0 8px 32px rgba(124, 58, 237, 0.1)',
+          }}
+        >
+          {/* Message Header (for long messages) */}
+          {isLongMessage && (
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
+              <div className="text-xs text-white/60">
+                {messageLength} characters • {Math.ceil(messageLength / 500)} min read
+              </div>
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="text-xs text-white/60 hover:text-white/80 transition-colors"
+              >
+                {isExpanded ? 'Collapse' : 'Expand'}
+              </button>
+            </div>
           )}
-          {theme.messageEffects === 'glow' && (
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent animate-pulse" />
+
+          {/* Message Text */}
+          <div className={`
+            text-white leading-relaxed font-medium
+            ${isLongMessage && !isExpanded ? 'line-clamp-4' : ''}
+            prose prose-invert max-w-none
+          `}>
+            <div className="text-base md:text-lg" style={{ lineHeight: '1.7' }}>
+              {message.content.split('\n').map((paragraph, index) => (
+                <p key={index} className="mb-4 last:mb-0">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          {/* Expand Button (for collapsed long messages) */}
+          {isLongMessage && !isExpanded && (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="mt-4 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+            >
+              Read full message →
+            </button>
           )}
+
+          {/* Message Timestamp */}
+          <div className="mt-4 pt-2 border-t border-white/5">
+            <span className="text-xs text-white/40">
+              {new Date(message.created_at).toLocaleTimeString()}
+            </span>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };
 
 // ==================== UNIVERSE THEMES ====================
 const universeThemes = {
-  // CYBERPUNK NEON (Default for user personas)
   default: {
     name: "Neural Interface",
     bg: "from-[#0a0015] via-[#1a0030] to-black",
     overlay: "bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,rgba(255,0,255,0.03)_2px,rgba(255,0,255,0.03)_4px)]",
-    userBubble: "bg-gradient-to-br from-pink-600/80 to-purple-600/80 backdrop-blur-sm",
-    aiBubble: "bg-gradient-to-br from-purple-700/80 to-indigo-700/80 backdrop-blur-sm",
-    userBorder: "#ff00ff80",
-    aiBorder: "#8000ff80",
-    userShadow: "0 0 20px #ff00ff80",
-    aiShadow: "0 0 20px #8000ff80",
-    inputBg: "bg-black/40 border-pink-500/50",
-    inputFocus: "border-pink-400 shadow-[0_0_20px_#ff00ff40]",
-    buttonBg: "bg-gradient-to-r from-pink-600 to-purple-600",
-    buttonHover: "hover:from-pink-700 hover:to-purple-700",
-    headerColor: "text-pink-400",
+    particleColors: ["#ff00ff", "#00ffff", "#ff0080", "#8000ff"],
     accentColor: "#ff00ff",
     typingColor: "#ff00ff",
     typingText: "Processing neural patterns...",
-    particleColors: ["#ff00ff", "#00ffff", "#ff0080", "#8000ff"],
-    particleSpeed: 0.3,
-    particleSize: 3,
-    particleShape: "circle",
-    particleBlendMode: "screen",
-    messageEffects: "scan",
-    glitchColor: "pink",
   },
-
-  // CYBER HAVEN - AI Utopia
-  "Cyber Haven": {
+  'Cyber Haven': {
     name: "Digital Paradise",
     bg: "from-[#001122] via-[#003366] to-[#000011]",
     overlay: "bg-[radial-gradient(ellipse_at_center,rgba(0,255,255,0.1),transparent_70%)]",
-    userBubble: "bg-gradient-to-br from-cyan-500/70 to-blue-600/70 backdrop-blur-md",
-    aiBubble: "bg-gradient-to-br from-blue-800/70 to-indigo-800/70 backdrop-blur-md",
-    userBorder: "#00ffff60",
-    aiBorder: "#0080ff60",
-    userShadow: "0 0 25px #00ffff80, 0 0 50px #00ffff40",
-    aiShadow: "0 0 25px #0080ff80, 0 0 50px #0080ff40",
-    inputBg: "bg-black/30 border-cyan-500/50",
-    inputFocus: "border-cyan-300 shadow-[0_0_25px_#00ffff60]",
-    buttonBg: "bg-gradient-to-r from-cyan-500 to-blue-600",
-    buttonHover: "hover:from-cyan-400 hover:to-blue-500",
-    headerColor: "text-cyan-300",
+    particleColors: ["#00ffff", "#0080ff", "#40c0ff", "#80e0ff"],
     accentColor: "#00ffff",
     typingColor: "#00ffff",
     typingText: "AI consciousness synchronizing...",
-    particleColors: ["#00ffff", "#0080ff", "#40c0ff", "#80e0ff"],
-    particleSpeed: 0.2,
-    particleSize: 4,
-    particleShape: "diamond",
-    particleBlendMode: "screen",
-    messageEffects: "glow",
-    glitchColor: "blue",
   },
-
-  // NEO EARTH-77 - Dystopian Cyberpunk
-  "Neo Earth-77": {
+  'Neo Earth-77': {
     name: "Corporate Wasteland",
     bg: "from-[#1a0000] via-[#330000] to-black",
     overlay: "bg-[repeating-linear-gradient(45deg,transparent,transparent_1px,rgba(255,0,0,0.05)_1px,rgba(255,0,0,0.05)_2px)]",
-    userBubble: "bg-gradient-to-br from-red-600/80 to-orange-600/80 backdrop-blur-sm border border-red-500/30",
-    aiBubble: "bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-sm border border-red-400/20",
-    userBorder: "#ff004080",
-    aiBorder: "#666666",
-    userShadow: "0 0 20px #ff0040, inset 0 0 10px #ff004040",
-    aiShadow: "0 0 15px #66666680",
-    inputBg: "bg-black/50 border-red-600/50",
-    inputFocus: "border-red-400 shadow-[0_0_20px_#ff004080]",
-    buttonBg: "bg-gradient-to-r from-red-600 to-orange-700",
-    buttonHover: "hover:from-red-500 hover:to-orange-600",
-    headerColor: "text-red-400",
+    particleColors: ["#ff0000", "#ff4040", "#ff8080", "#cc0000"],
     accentColor: "#ff0040",
     typingColor: "#ff4040",
     typingText: "Decrypting corporate data...",
-    particleColors: ["#ff0000", "#ff4040", "#ff8080", "#cc0000"],
-    particleSpeed: 0.5,
-    particleSize: 2,
-    particleShape: "square",
-    particleBlendMode: "multiply",
-    messageEffects: "scan",
-    glitchColor: "red",
   },
-
-  // SOLAR DRIFT - Golden Spaceways
-  "Solar Drift": {
+  'Solar Drift': {
     name: "Stellar Pathways",
     bg: "from-[#2d1b00] via-[#5c3317] to-[#1a0f00]",
     overlay: "bg-[radial-gradient(circle_at_50%_50%,rgba(255,204,0,0.15),transparent_60%)]",
-    userBubble: "bg-gradient-to-br from-yellow-500/70 to-orange-500/70 backdrop-blur-md border border-yellow-400/40",
-    aiBubble: "bg-gradient-to-br from-orange-700/70 to-amber-800/70 backdrop-blur-md border border-orange-500/40",
-    userBorder: "#ffcc0060",
-    aiBorder: "#ff990040",
-    userShadow: "0 0 25px #ffcc00, 0 0 50px #ffcc0040",
-    aiShadow: "0 0 20px #ff9900, 0 0 40px #ff990040",
-    inputBg: "bg-black/40 border-yellow-600/50",
-    inputFocus: "border-yellow-400 shadow-[0_0_25px_#ffcc0060]",
-    buttonBg: "bg-gradient-to-r from-yellow-500 to-orange-600",
-    buttonHover: "hover:from-yellow-400 hover:to-orange-500",
-    headerColor: "text-yellow-300",
+    particleColors: ["#ffcc00", "#ff9900", "#ffaa00", "#ff6600"],
     accentColor: "#ffcc00",
     typingColor: "#ffcc00",
     typingText: "Navigating stellar currents...",
-    particleColors: ["#ffcc00", "#ff9900", "#ffaa00", "#ff6600"],
-    particleSpeed: 0.4,
-    particleSize: 5,
-    particleShape: "circle",
-    particleBlendMode: "screen",
-    messageEffects: "glow",
-    glitchColor: "yellow",
   },
-
-  // QUANTUM VOID - Reality Bending
-  "Quantum Void": {
+  'Quantum Void': {
     name: "Reality Nexus",
     bg: "from-[#0d0015] via-[#1a003d] to-[#000000]",
     overlay: "bg-[conic-gradient(from_0deg_at_center,transparent_0deg,rgba(128,0,255,0.1)_90deg,transparent_180deg)]",
-    userBubble: "bg-gradient-to-br from-purple-600/60 to-violet-700/60 backdrop-blur-lg border border-purple-400/30",
-    aiBubble: "bg-gradient-to-br from-indigo-800/60 to-purple-900/60 backdrop-blur-lg border border-indigo-500/30",
-    userBorder: "#8000ff40",
-    aiBorder: "#4000ff40",
-    userShadow: "0 0 30px #8000ff, 0 0 60px #8000ff40",
-    aiShadow: "0 0 25px #4000ff, 0 0 50px #4000ff40",
-    inputBg: "bg-black/60 border-purple-600/40",
-    inputFocus: "border-purple-400 shadow-[0_0_30px_#8000ff60]",
-    buttonBg: "bg-gradient-to-r from-purple-600 to-indigo-700",
-    buttonHover: "hover:from-purple-500 hover:to-indigo-600",
-    headerColor: "text-purple-300",
+    particleColors: ["#8000ff", "#a040ff", "#c080ff", "#4000ff"],
     accentColor: "#8000ff",
     typingColor: "#a040ff",
     typingText: "Quantum thoughts materializing...",
-    particleColors: ["#8000ff", "#a040ff", "#c080ff", "#4000ff"],
-    particleSpeed: 0.1,
-    particleSize: 6,
-    particleShape: "diamond",
-    particleBlendMode: "screen",
-    messageEffects: "glow",
-    glitchColor: "purple",
   },
-
-  // CRYSTAL GARDENS - Harmonic Paradise
-  "Crystal Gardens": {
+  'Crystal Gardens': {
     name: "Resonant Sanctuary",
     bg: "from-[#001a0d] via-[#003d20] to-[#000a05]",
     overlay: "bg-[radial-gradient(ellipse_at_center,rgba(0,255,128,0.12),transparent_65%)]",
-    userBubble: "bg-gradient-to-br from-emerald-500/70 to-teal-600/70 backdrop-blur-md border border-emerald-400/50",
-    aiBubble: "bg-gradient-to-br from-teal-700/70 to-green-800/70 backdrop-blur-md border border-teal-500/50",
-    userBorder: "#00ff8060",
-    aiBorder: "#00cc6650",
-    userShadow: "0 0 25px #00ff80, 0 0 50px #00ff8040",
-    aiShadow: "0 0 20px #00cc66, 0 0 40px #00cc6640",
-    inputBg: "bg-black/30 border-emerald-500/50",
-    inputFocus: "border-emerald-400 shadow-[0_0_25px_#00ff8060]",
-    buttonBg: "bg-gradient-to-r from-emerald-500 to-teal-600",
-    buttonHover: "hover:from-emerald-400 hover:to-teal-500",
-    headerColor: "text-emerald-300",
+    particleColors: ["#00ff80", "#40ff99", "#80ffcc", "#00cc66"],
     accentColor: "#00ff80",
     typingColor: "#40ff99",
     typingText: "Harmonizing crystal frequencies...",
-    particleColors: ["#00ff80", "#40ff99", "#80ffcc", "#00cc66"],
-    particleSpeed: 0.15,
-    particleSize: 4,
-    particleShape: "diamond",
-    particleBlendMode: "screen",
-    messageEffects: "glow",
-    glitchColor: "green",
   },
-
-  // NIGHTMARE FORGE - Terror Realm
-  "Nightmare Forge": {
+  'Nightmare Forge': {
     name: "Fear Manifestation",
     bg: "from-[#200000] via-[#400000] to-[#100000]",
     overlay: "bg-[repeating-conic-gradient(from_0deg_at_center,rgba(255,0,0,0.05)_0deg,transparent_30deg,rgba(255,0,0,0.05)_60deg)]",
-    userBubble: "bg-gradient-to-br from-red-700/80 to-black/80 backdrop-blur-sm border border-red-500/60",
-    aiBubble: "bg-gradient-to-br from-black/80 to-red-900/80 backdrop-blur-sm border border-red-600/40",
-    userBorder: "#ff000080",
-    aiBorder: "#800000",
-    userShadow: "0 0 25px #ff0000, inset 0 0 15px #ff000040",
-    aiShadow: "0 0 20px #800000, inset 0 0 10px #80000040",
-    inputBg: "bg-black/70 border-red-700/60",
-    inputFocus: "border-red-500 shadow-[0_0_30px_#ff000080]",
-    buttonBg: "bg-gradient-to-r from-red-700 to-black",
-    buttonHover: "hover:from-red-600 hover:to-gray-900",
-    headerColor: "text-red-300",
+    particleColors: ["#ff0000", "#cc0000", "#ff4040", "#800000"],
     accentColor: "#ff0000",
     typingColor: "#ff4040",
     typingText: "Manifesting deepest fears...",
-    particleColors: ["#ff0000", "#cc0000", "#ff4040", "#800000"],
-    particleSpeed: 0.6,
-    particleSize: 3,
-    particleShape: "square",
-    particleBlendMode: "multiply",
-    messageEffects: "scan",
-    glitchColor: "red",
   },
 };
 
@@ -452,6 +334,7 @@ const ChatRoom = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const bottomRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Determine theme
   const theme = persona?.universe && universeThemes[persona.universe] 
@@ -470,21 +353,31 @@ const ChatRoom = () => {
           .single();
         
         if (error) {
-          console.error("❌ Error fetching persona:", error);
+          console.log("Checking localStorage for persona...");
+          const savedPersonas = JSON.parse(localStorage.getItem('user_personas') || '[]');
+          const localPersona = savedPersonas.find(p => p.id === id);
+          
+          if (localPersona) {
+            setPersona(localPersona);
+          } else {
+            console.error("Persona not found");
+            navigate('/dashboard');
+          }
         } else {
           setPersona(data);
         }
       } catch (error) {
-        console.error("❌ Fetch persona error:", error);
+        console.error("Fetch persona error:", error);
+        navigate('/dashboard');
       } finally {
         setLoading(false);
       }
     };
     
     fetchPersona();
-  }, [id]);
+  }, [id, navigate]);
 
-  // Fetch messages and subscribe
+  // Fetch messages
   useEffect(() => {
     const fetchMessages = async () => {
       try {
@@ -495,17 +388,22 @@ const ChatRoom = () => {
           .order("created_at", { ascending: true });
         
         if (error) {
-          console.error("❌ Error fetching messages:", error);
+          const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+          setMessages(savedMessages);
         } else {
           setMessages(data);
         }
       } catch (error) {
-        console.error("❌ Fetch messages error:", error);
+        const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+        setMessages(savedMessages);
       }
     };
 
-    fetchMessages();
+    if (persona) {
+      fetchMessages();
+    }
 
+    // Real-time subscription
     const channel = supabase
       .channel("message-updates")
       .on(
@@ -526,104 +424,107 @@ const ChatRoom = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [id]);
+  }, [id, persona]);
 
   // Auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Send message
+  // Send message function
   const sendMessage = async () => {
-    if (!input.trim() || isTyping) return;
+    if (!input.trim() || isTyping || !persona) return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
-        alert("❌ User not authenticated");
-        return;
-      }
-
       const userMsg = {
-        user_id: user.id,
+        id: Date.now(),
+        user_id: user?.id || 'local_user',
         persona_id: id,
         content: input,
         sender: "user",
+        created_at: new Date().toISOString()
       };
 
-      setMessages((prev) => [...prev, { ...userMsg, id: Date.now() }]);
-      const userInput = input;
+      setMessages((prev) => [...prev, userMsg]);
+      const currentInput = input;
       setInput("");
-      await supabase.from("messages").insert([userMsg]);
+
+      // Save user message
+      try {
+        if (user) {
+          await supabase.from("messages").insert([{
+            user_id: user.id,
+            persona_id: id,
+            content: currentInput,
+            sender: "user"
+          }]);
+        } else {
+          const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+          savedMessages.push(userMsg);
+          localStorage.setItem(`messages_${id}`, JSON.stringify(savedMessages));
+        }
+      } catch (error) {
+        const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+        savedMessages.push(userMsg);
+        localStorage.setItem(`messages_${id}`, JSON.stringify(savedMessages));
+      }
+
       setIsTyping(true);
 
-      // Enhanced prompt based on universe
-      const universeContext = persona?.universe 
-        ? `You are in the universe of ${persona.universe}. Respond according to that world's atmosphere, technology level, and social structure.`
-        : '';
-
-      const prompt = `
-${universeContext}
-
-You are strictly roleplaying as a character named "${persona?.name}" from ${persona?.universe ? `the universe "${persona.universe}"` : 'an alternate reality'}.
-
-Description: ${persona?.description || "No description provided."}
-Greeting: ${persona?.greeting || "Hello there."}
-
-🎭 You MUST stay fully in character as ${persona?.name}.
-❌ You must NEVER say you're an AI, program, assistant, or chatbot.
-✅ Always respond as ${persona?.name} would — with personality, emotions, and context from their universe.
-🌌 Be conversational, engaging, and authentic to your character.
-💬 The user is talking to you as another real person in your universe.
-
-The user says: "${userInput}"
-
-Reply as ${persona?.name} would, staying true to your character and universe.
-`;
-
-      const res = await fetch("http://localhost:3001/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, persona }),
-      });
-
-      let data;
       try {
-        data = await res.json();
-      } catch (err) {
-        console.error("❌ Failed to parse response JSON", err);
-        throw new Error("Invalid server response format");
+        const aiResponse = await getAIResponse(persona, currentInput);
+
+        const aiMsg = {
+          id: Date.now() + 1,
+          user_id: user?.id || 'local_user',
+          persona_id: id,
+          content: aiResponse,
+          sender: "persona",
+          created_at: new Date().toISOString()
+        };
+
+        setMessages((prev) => [...prev, aiMsg]);
+
+        // Save AI message
+        try {
+          if (user) {
+            await supabase.from("messages").insert([{
+              user_id: user.id,
+              persona_id: id,
+              content: aiResponse,
+              sender: "persona"
+            }]);
+          } else {
+            const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+            savedMessages.push(aiMsg);
+            localStorage.setItem(`messages_${id}`, JSON.stringify(savedMessages));
+          }
+        } catch (error) {
+          const savedMessages = JSON.parse(localStorage.getItem(`messages_${id}`) || '[]');
+          savedMessages.push(aiMsg);
+          localStorage.setItem(`messages_${id}`, JSON.stringify(savedMessages));
+        }
+
+      } catch (error) {
+        console.error("AI Response Error:", error);
+        
+        const errorMsg = {
+          id: Date.now() + 2,
+          content: "I'm having trouble connecting right now. Please try again!",
+          sender: "system",
+          created_at: new Date().toISOString()
+        };
+        
+        setMessages((prev) => [...prev, errorMsg]);
+      } finally {
+        setIsTyping(false);
       }
 
-      if (!res.ok) {
-        console.error("❌ Server returned error:", data);
-        throw new Error(data.error || "AI request failed");
-      }
-
-      const reply = data.response;
-      if (!reply) {
-        throw new Error("AI did not respond.");
-      }
-
-      const aiMsg = {
-        user_id: user.id,
-        persona_id: id,
-        content: reply,
-        sender: "persona",
-      };
-
-      setMessages((prev) => [...prev, { ...aiMsg, id: Date.now() + 1 }]);
+    } catch (error) {
+      console.error("Send message error:", error);
       setIsTyping(false);
-      await supabase.from("messages").insert([aiMsg]);
-    } catch (err) {
-      console.error("❌ AI fetch failed:", err.message);
-      setIsTyping(false);
-      setMessages((prev) => [...prev, {
-        id: Date.now(),
-        content: "Sorry, I'm having trouble connecting right now. Please try again.",
-        sender: "system",
-      }]);
     }
   };
 
@@ -632,19 +533,30 @@ Reply as ${persona?.name} would, staying true to your character and universe.
     const confirmClear = window.confirm("Start a new conversation? This will clear all messages.");
     if (confirmClear) {
       try {
-        const { error } = await supabase
-          .from("messages")
-          .delete()
-          .eq("persona_id", id);
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (error) {
-          console.error("❌ Failed to clear chat:", error);
+        if (user) {
+          await supabase
+            .from("messages")
+            .delete()
+            .eq("persona_id", id);
         } else {
-          setMessages([]);
+          localStorage.removeItem(`messages_${id}`);
         }
+        
+        setMessages([]);
       } catch (error) {
-        console.error("❌ Clear chat error:", error);
+        localStorage.removeItem(`messages_${id}`);
+        setMessages([]);
       }
+    }
+  };
+
+  // Handle input
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -652,33 +564,51 @@ Reply as ${persona?.name} would, staying true to your character and universe.
     return (
       <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${theme.bg}`}>
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: theme.accentColor, borderTopColor: 'transparent' }} />
-          <div className="text-white">Loading neural interface...</div>
+          <div 
+            className="w-16 h-16 border-4 border-t-transparent rounded-full animate-spin mb-6" 
+            style={{ borderColor: theme.accentColor, borderTopColor: 'transparent' }} 
+          />
+          <div className="text-white text-xl">Loading neural interface...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!persona) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center bg-gradient-to-br ${theme.bg}`}>
+        <div className="text-center">
+          <div className="text-8xl mb-8">❌</div>
+          <div className="text-white text-2xl mb-6">Persona not found</div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-8 py-4 bg-gradient-to-r from-pink-600 to-purple-600 rounded-xl text-white font-bold hover:from-pink-700 hover:to-purple-700 transition-all"
+          >
+            Return to Dashboard
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen flex flex-col relative bg-gradient-to-br ${theme.bg}`}>
-      {/* Background Particle System */}
-      <ParticleSystem theme={theme} count={30} />
-      
-      {/* Background Overlay */}
+    <div className={`min-h-screen flex flex-col bg-gradient-to-br ${theme.bg} relative`}>
+      {/* Background Effects */}
+      <ParticleSystem theme={theme} count={20} />
       <div className={`absolute inset-0 ${theme.overlay}`} />
 
       {/* Header */}
-      <header className="relative z-10 p-6 border-b border-white/10 backdrop-blur-sm">
-        <div className="flex items-center justify-between">
+      <header className="relative z-10 p-6 border-b border-white/10 backdrop-blur-lg bg-black/20">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-3 text-white/70 hover:text-white transition-colors group"
           >
             <div 
-              className="w-8 h-8 rounded-full border flex items-center justify-center group-hover:shadow-lg transition-all"
+              className="w-10 h-10 rounded-xl border flex items-center justify-center group-hover:scale-110 transition-transform"
               style={{ 
                 borderColor: theme.accentColor, 
-                boxShadow: `0 0 0 ${theme.accentColor}00`
+                boxShadow: `0 0 20px ${theme.accentColor}20`
               }}
             >
               ←
@@ -688,96 +618,121 @@ Reply as ${persona?.name} would, staying true to your character and universe.
 
           <div className="text-center">
             <GlitchText 
-              className={`text-3xl md:text-4xl font-bold ${theme.headerColor}`}
-              color={theme.glitchColor}
+              className="text-4xl md:text-5xl font-bold text-white"
+              color={theme.accentColor === '#ff00ff' ? 'pink' : 'blue'}
             >
-              {persona?.name || "Loading..."}
+              {persona?.name}
             </GlitchText>
-            <div className="text-white/60 text-sm mt-1">{theme.name}</div>
+            <div className="text-white/60 text-sm mt-2">
+              {theme.name} • Unrestricted AI • Full Memory
+            </div>
           </div>
 
           <button
             onClick={clearChat}
-            className={`
-              px-4 py-2 rounded-lg font-medium transition-all duration-300 text-white
-              ${theme.buttonBg} ${theme.buttonHover}
-            `}
-            style={{ boxShadow: `0 0 15px ${theme.accentColor}40` }}
+            className="px-6 py-3 rounded-xl font-bold transition-all duration-300 text-white hover:scale-105"
+            style={{ 
+              background: `linear-gradient(45deg, ${theme.accentColor}80, ${theme.accentColor}40)`,
+              boxShadow: `0 0 20px ${theme.accentColor}40`
+            }}
           >
             New Chat
           </button>
         </div>
       </header>
 
-      {/* Chat Container */}
-      <main className="flex-1 flex flex-col relative z-10">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map((msg, index) => (
-            <MessageBubble
-              key={msg.id || index}
-              message={msg}
-              theme={theme}
-              isUser={msg.sender === "user"}
-            />
-          ))}
-
-          {isTyping && <TypingIndicator theme={theme} />}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Input Area */}
-        <div className="p-6 border-t border-white/10 backdrop-blur-sm">
-          <div className="flex gap-4 max-w-4xl mx-auto">
-            <input
-              type="text"
-              className={`
-                flex-1 px-6 py-4 rounded-2xl text-white placeholder-white/50 transition-all duration-300
-                ${theme.inputBg} border backdrop-blur-sm
-                focus:outline-none focus:${theme.inputFocus}
-              `}
-              placeholder={`Message ${persona?.name || 'persona'}...`}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              }}
-              disabled={isTyping}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isTyping || !input.trim()}
-              className={`
-                px-8 py-4 rounded-2xl font-bold text-white transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed
-                ${theme.buttonBg} ${theme.buttonHover}
-              `}
-              style={{ boxShadow: `0 0 20px ${theme.accentColor}60` }}
-            >
-              {isTyping ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Sending</span>
+      {/* Main Chat Area - Full Screen */}
+      <main className="flex-1 relative z-10 overflow-hidden">
+        <div className="h-full max-w-6xl mx-auto flex flex-col">
+          {/* Messages Area - Full Height */}
+          <div className="flex-1 overflow-y-auto px-6 py-8 space-y-0">
+            {messages.length === 0 && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center max-w-2xl">
+                  <div className="text-8xl mb-8">{persona.avatar || '🤖'}</div>
+                  <GlitchText 
+                    className="text-4xl font-bold text-white mb-6"
+                    color={theme.accentColor === '#ff00ff' ? 'pink' : 'blue'}
+                  >
+                    {persona.greeting || `Hello! I'm ${persona.name}.`}
+                  </GlitchText>
+                  <div className="text-xl text-white/70 leading-relaxed">
+                    {persona.description || "I'm here to chat with you about anything and everything. What would you like to talk about?"}
+                  </div>
                 </div>
-              ) : (
-                "Send"
-              )}
-            </button>
+              </div>
+            )}
+
+            {messages.map((msg, index) => (
+              <FullScreenMessage
+                key={msg.id || index}
+                message={msg}
+                theme={theme}
+                isUser={msg.sender === "user"}
+                character={persona}
+              />
+            ))}
+
+            {isTyping && <TypingIndicator theme={theme} />}
+            <div ref={bottomRef} />
+          </div>
+
+          {/* Input Area - Fixed at Bottom */}
+          <div className="p-6 border-t border-white/10 backdrop-blur-lg bg-black/20">
+            <div className="flex gap-4 max-w-4xl mx-auto">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={inputRef}
+                  className="w-full px-6 py-4 rounded-2xl text-white placeholder-white/50 resize-none transition-all duration-300 bg-black/40 border border-white/20 backdrop-blur-sm focus:outline-none focus:border-opacity-60 focus:bg-black/60 min-h-[60px] max-h-[200px]"
+                  placeholder={`Message ${persona?.name || 'persona'}... (Press Enter to send, Shift+Enter for new line)`}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  disabled={isTyping}
+                  rows={1}
+                  style={{
+                    borderColor: theme.accentColor + '40',
+                    boxShadow: `0 0 20px ${theme.accentColor}20`,
+                  }}
+                />
+                <div className="absolute bottom-2 right-2 text-xs text-white/40">
+                  {input.length}/2000
+                </div>
+              </div>
+              <button
+                onClick={sendMessage}
+                disabled={isTyping || !input.trim()}
+                className="px-8 py-4 rounded-2xl font-bold text-white transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-3"
+                style={{
+                  background: `linear-gradient(45deg, ${theme.accentColor}, ${theme.accentColor}80)`,
+                  boxShadow: `0 0 20px ${theme.accentColor}40`,
+                }}
+              >
+                {isTyping ? (
+                  <>
+                    <div 
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" 
+                    />
+                    <span>Sending</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Send</span>
+                    <span className="text-sm">↵</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Status */}
+            <div className="text-center mt-4">
+              <div className="text-xs text-white/50">
+                🧠 Full Memory Active • 🔓 Unrestricted Mode • ⚡ {persona.name} Ready
+              </div>
+            </div>
           </div>
         </div>
       </main>
-
-      {/* Global Styles */}
-      <style>
-        {`
-          @keyframes scan {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-          }
-        `}
-      </style>
     </div>
   );
 };
