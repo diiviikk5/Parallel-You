@@ -13,7 +13,7 @@
 *Create AI personas, engage in unrestricted conversations, and experience the future of AI interaction*
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/)
-[![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-brightgreen?style=for-the-badge)](https://parallel-you.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀-Live%20Demo-brightgreen?style=for-the-badge)](https://pyou.vercel.app/)
 
 </div>
 
@@ -38,7 +38,7 @@
 
 ## 🚀 **Live Demo**
 
-Experience Parallel You in action: **[https://parallel-you.vercel.app](https://parallel-you.vercel.app)**
+Experience Parallel You in action: **[https://parallel-you.vercel.app](https://pyou.vercel.app/)**
 
 ### 🎮 **Demo Personas to Try:**
 - **DVK-X** - Cyberpunk hacker with sarcastic wit
